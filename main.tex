@@ -1,0 +1,271 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{url}
+\usepackage{balance}
+\usepackage{microtype}
+
+\begin{document}
+\title{Sentinel-BPA (Based Population Analysis):\\ A Geospatial Framework for Examining Built-Up Expansion and Population Distribution in Dehradun}
+\author{\IEEEauthorblockN{Vaijanti Aswal}
+\IEEEauthorblockA{Department of Computer Science\\University of Petroleum and Energy Studies (UPES)\\Dehradun, Uttarakhand, India}}
+\maketitle
+
+\begin{abstract}
+Urban expansion changes the spatial distribution of people and can increase pressure on essential public services. This paper presents Sentinel-BPA (Based Population Analysis), a geospatial workflow implemented in Google Earth Engine to examine built-up expansion and population distribution across Dehradun district, Uttarakhand, India. Sentinel-2 surface-reflectance imagery was used to create a 2024 median composite and derive the Normalized Difference Vegetation Index (NDVI) and Normalized Difference Built-up Index (NDBI). Annual built-up masks for 2016 and 2025 were generated from the built-class probability band of Dynamic World. Gridded population estimates for 2016 and 2025 were obtained from WorldPop. The analysis estimated a net built-up-area increase of 68.71 km$^2$ (28.32\%) and a gross newly mapped built-up area of 77.47 km$^2$. The estimated population increased from approximately 1.84 million to 1.97 million (6.74\%). Of the newly mapped built-up area, 34.37 km$^2$ (44.37\%) overlapped the area above the 75th-percentile population-density threshold. These outputs are model-based spatial indicators rather than census counts or field-validated measurements. The workflow is intended to support further investigation and evidence-informed urban planning.
+\end{abstract}
+\begin{IEEEkeywords}
+Sentinel-2, Dynamic World, WorldPop, population distribution, built-up expansion, remote sensing, Google Earth Engine, GIS.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Urban growth changes more than the visible shape of a city. As settlements spread, demand for housing, water, electricity, transport, healthcare, education, and waste services may also change. These pressures are rarely distributed evenly. Some neighbourhoods expand quickly, while other parts of a district remain largely rural or sparsely settled. For planners, it is useful to understand both how much the built-up footprint changes and where population is concentrated.
+
+Census and administrative records provide essential demographic information, but their reference dates and spatial units may not align with the pace or location of physical development. Satellite observations provide repeated views of the land surface. When combined with gridded population estimates, they can support spatial screening of places where settlement expansion and population concentration occur together. Previous work has examined urbanisation and land-surface dynamics in Dehradun using multi-temporal remote-sensing data, providing local context for continued spatial monitoring \cite{dhankar2024,mishra2023}.
+
+Sentinel-BPA applies this approach to Dehradun district. The workflow uses Sentinel-2 surface-reflectance imagery for spectral indicators, Dynamic World built-class probabilities for year-wise built-up mapping, and WorldPop gridded estimates for population distribution. Satellite imagery is not treated as a direct count of residents. Population values are obtained from a separate demographic grid and remain modelled estimates.
+
+\section{Objectives and Contributions}
+The objectives are to prepare a district-wide analysis boundary; create a Sentinel-2 composite and derive NDVI and NDBI; compare built-up probability in 2016 and 2025; summarise WorldPop estimates for 2016 and 2025; identify newly mapped built-up pixels overlapping high-density population areas; and present indicators for further planning review.
+
+The main contribution is an integrated geospatial workflow that places annual built-up mapping, gridded population estimates, and a high-density overlap calculation within one district boundary. The analysis distinguishes gross newly mapped built-up area from net change in total built-up area; these measures are related but not interchangeable.
+
+\section{Study Area}
+The study area is Dehradun district in Uttarakhand, India. It includes the Dehradun urban region, peri-urban settlements, rural areas, and hilly terrain. The administrative boundary was selected from the FAO Global Administrative Unit Layers (GAUL) 2015 Level-2 collection using the attributes India, Uttarakhand, and Dehra Dun. The dataset stores the district name as ``Dehra Dun''. The selected geometry was used to clip imagery and calculate district statistics \cite{faoGaul}.
+
+\section{Data Sources and Preprocessing}
+\subsection{Sentinel-2 Surface Reflectance}
+The collection used was \texttt{COPERNICUS/S2\_SR\_HARMONIZED}. Images were filtered to the Dehradun geometry and the period 1 January 2024 to 1 January 2025, with scene-level \texttt{CLOUDY\_PIXEL\_PERCENTAGE} below 20. The filtered collection contained 169 images. A median composite was generated and clipped to the district boundary. Sentinel-2 provides multispectral observations suitable for land-cover analysis \cite{esaSentinel2,geeS2}.
+
+\subsection{Spectral Indices}
+The Normalized Difference Vegetation Index (NDVI) was calculated as
+\begin{equation}
+\mathrm{NDVI}=\frac{B8-B4}{B8+B4},
+\end{equation}
+where $B8$ is near-infrared reflectance and $B4$ is red reflectance. The Normalized Difference Built-up Index (NDBI) was calculated as
+\begin{equation}
+\mathrm{NDBI}=\frac{B11-B8}{B11+B8}.
+\end{equation}
+NDBI can highlight some built-up surfaces, but it is not a stand-alone building detector. Bare soil, dry surfaces, and mixed pixels may produce similar responses. The indices were used as supporting spectral indicators rather than independently validated land-cover classes.
+
+\subsection{Dynamic World Built-Up Probability}
+Year-wise built-up mapping used the \texttt{GOOGLE/DYNAMICWORLD/V1} ImageCollection. For each comparison year, the collection was filtered to the district and calendar-year window. The \texttt{built} probability band was selected and its annual mean calculated. Pixels with mean built probability greater than 0.5 were treated as built-up. The 2016 and 2025 masks were compared to identify pixels newly mapped as built-up in 2025. Dynamic World provides 10 m land-cover probabilities derived from Sentinel-2 observations \cite{brown2022,geeDynamic}.
+
+\subsection{WorldPop Population Grid}
+Population analysis used \texttt{WorldPop/GP/100m/R2025A/v1/pop}, at approximately 100 m grid spacing. The collection was filtered to India and the years 2016 and 2025. Population values were summed within the Dehradun district geometry. These are gridded model estimates, not direct household counts or official census totals \cite{worldpop}.
+
+\section{Methodology}
+The workflow consisted of: (1) selecting the district boundary; (2) filtering and compositing Sentinel-2 imagery; (3) calculating NDVI and NDBI; (4) generating annual Dynamic World built-up masks; (5) calculating built-up area and change; (6) summing WorldPop estimates and deriving density statistics; and (7) intersecting the newly mapped built-up mask with the high-density zone.
+
+\subsection{Implementation in Google Earth Engine}
+The workflow was implemented as a sequence of server-side operations in the Google Earth Engine JavaScript environment. The administrative feature was first filtered by its three name attributes, and its geometry was retained as the common region of interest. The same geometry was passed to image filtering, clipping, and regional reduction operations. Keeping one boundary throughout the workflow reduces the risk of comparing statistics calculated over different spatial extents.
+
+For the Sentinel-2 component, the image collection was filtered by date, district bounds, and the scene-level cloud metadata field. A median reducer was then applied to the selected surface-reflectance bands. The median composite is a per-pixel summary of the available observations; it is not a single satellite acquisition date. The resulting image was clipped to the district and used to calculate NDVI and NDBI. These indices support interpretation of vegetation and built-up surface patterns, while the annual built-up comparison was performed separately with Dynamic World.
+
+For each Dynamic World comparison year, the script created a calendar-year interval, filtered the image collection to the district, selected the \texttt{built} probability band, and calculated the annual mean. The probability image was thresholded at 0.5 to produce a binary mask. Pixel area was then summed over the district and converted from square metres to square kilometres. This same sequence was applied to 2016 and 2025. The newly mapped mask was created with a logical intersection between the 2025 mask and the inverse of the 2016 mask.
+
+The population component selected the India records for 2016 and 2025 from the specified WorldPop collection. The population band was summed over the district geometry. The density surface was used to calculate percentile statistics, including the 75th percentile adopted for the high-density overlay. Finally, the new built-up mask was intersected with the high-density zone and its pixel area was reduced over the district. The Console outputs were retained as the numerical record for this paper. Map screenshots were captured from the corresponding Earth Engine layers to document their spatial appearance.
+
+\subsection{Key Reproducibility Settings}
+Table~\ref{tab:settings} records the principal dataset identifiers and processing settings used for the reported run. These settings are important because the output depends on the selected boundary, time window, probability threshold, and population product. Re-running the workflow with a different collection version, date interval, or threshold may produce different measurements.
+
+\begin{table}[!t]
+\caption{Principal Processing Settings}
+\label{tab:settings}
+\centering
+\footnotesize
+\begin{tabular}{p{0.36\columnwidth}p{0.56\columnwidth}}
+\toprule
+\textbf{Component}&\textbf{Setting used}\\
+\midrule
+Administrative boundary&FAO/GAUL/2015/level2; India, Uttarakhand, Dehra Dun\\
+Sentinel-2 collection&\texttt{COPERNICUS/S2\_SR\_HARMONIZED}\\
+Sentinel-2 period&2024-01-01 to 2025-01-01\\
+Scene cloud filter&\texttt{CLOUDY\_PIXEL\_PERCENTAGE} below 20\\
+Sentinel-2 observations&169 images after filtering\\
+Composite reducer&Per-pixel median\\
+Built-up collection&\texttt{GOOGLE/DYNAMICWORLD/V1}\\
+Built-up comparison&Calendar years 2016 and 2025\\
+Built-up threshold&Annual mean built probability $>0.5$\\
+Population collection&\texttt{WorldPop/GP/100m/R2025A/v1/pop}\\
+Population years&2016 and 2025\\
+High-density threshold&2025 density $P_{75}$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Built-Up Area and Change}
+Built-up area was calculated by summing pixel area for pixels whose annual mean Dynamic World built probability exceeded 0.5. Net change was
+\begin{equation}
+\Delta B=B_{2025}-B_{2016},
+\end{equation}
+and percentage change was
+\begin{equation}
+G_B=\frac{B_{2025}-B_{2016}}{B_{2016}}\times100.
+\end{equation}
+
+\subsection{Newly Mapped Built-Up Area}
+The newly mapped area retained pixels classified as built-up in 2025 but not in the 2016 mask:
+\begin{equation}
+N=M_{2025}\cap\overline{M_{2016}},
+\end{equation}
+where $M_t$ is the built-up mask for year $t$. This is a gross transition area, not net built-up growth, because some pixels mapped as built-up in 2016 may no longer meet the threshold in 2025.
+
+\subsection{Population Density and Overlap}
+The district-wide average population density was calculated by dividing the summed 2025 WorldPop estimate by the mapped district area. The 75th percentile ($P_{75}$) of the density surface was selected as the high-density threshold. This is a project-specific statistical threshold, not a statutory planning standard.
+
+The newly mapped built-up mask was intersected with locations at or above $P_{75}$. The overlap percentage was
+\begin{equation}
+O=\frac{A_{\mathrm{new, high-density}}}{A_{\mathrm{new}}}\times100.
+\end{equation}
+Population change was calculated as
+\begin{equation}
+G_P=\frac{P_{2025}-P_{2016}}{P_{2016}}\times100.
+\end{equation}
+This represents change in the selected WorldPop product's estimates, not a measured census growth rate.
+
+\section{Results}
+Table~\ref{tab:results} summarises the district-wide measurements returned by the Google Earth Engine Console. Values are rounded for presentation.
+
+\begin{table*}[!t]
+\caption{Sentinel-BPA District-Wide Results}
+\label{tab:results}
+\centering
+\footnotesize
+\begin{tabular}{p{0.28\textwidth}p{0.22\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{Indicator}&\textbf{Result}&\textbf{Interpretation}\\
+\midrule
+District area&3,066.94 km$^2$&Selected GAUL district geometry\\
+WorldPop estimate, 2016&1,842,001.77&Modelled residential population estimate\\
+WorldPop estimate, 2025&1,966,194.61&Modelled residential population estimate\\
+Estimated population change&124,192.84 (6.74\%)&Difference between the two year layers\\
+Average density, 2025&641.09 people/km$^2$&Population sum divided by district area\\
+$P_{75}$ density threshold&1,951.74 people/km$^2$&75th percentile of density surface\\
+Built-up area, 2016&242.63 km$^2$&Dynamic World built probability $>0.5$\\
+Built-up area, 2025&311.34 km$^2$&Dynamic World built probability $>0.5$\\
+Net built-up increase&68.71 km$^2$ (28.32\%)&Difference between annual totals\\
+Newly mapped built-up area&77.47 km$^2$&2025 mask excluding 2016 built mask\\
+New area in high-density zone&34.37 km$^2$&Intersection with $P_{75}$-or-higher zone\\
+Overlap share&44.37\%&Share of new area in the high-density zone\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Built-Up Expansion}
+Mapped built-up area increased from 242.63 km$^2$ in 2016 to 311.34 km$^2$ in 2025. The net increase was 68.71 km$^2$, or approximately 28.32\% of the 2016 mapped area. The mapped built-up share of the district increased from approximately 7.91\% to 10.15\%. These figures describe the output of the selected Dynamic World probability threshold and are remotely sensed estimates.
+
+\subsection{Population Distribution}
+The WorldPop estimate increased from approximately 1.84 million in 2016 to 1.97 million in 2025, a modelled increase of about 124,193 people or 6.74\%. The 2025 district-wide average density was 641.09 people per km$^2$. The $P_{75}$ threshold was 1,951.74 people per km$^2$.
+
+\subsection{Spatial Overlap}
+The intersection between newly mapped built-up area and the high-density zone was 34.37 km$^2$, representing 44.37\% of all newly mapped built-up area. The remaining 55.63\% fell outside the $P_{75}$-or-higher zone. This indicates spatial coincidence between newly mapped built-up pixels and areas with relatively high estimated population density. It does not establish that every new built-up pixel is occupied or that overlapping areas lack adequate services.
+
+\subsection{Reading the Area Measures Together}
+Three area measures in the results answer different questions. The 2025 built-up total (311.34 km$^2$) describes the footprint that met the selected probability threshold in that year. The net increase (68.71 km$^2$) is the difference between the 2025 and 2016 totals. The newly mapped area (77.47 km$^2$) instead counts locations that met the 2025 threshold but did not meet it in 2016. It is therefore a one-directional transition measure.
+
+The difference between gross newly mapped area and net increase is approximately 8.75 km$^2$. This difference is consistent with the fact that the net measure also reflects locations that were classified as built-up in 2016 but were not classified as built-up in 2025. It should not be read as a direct estimate of demolished buildings or land restoration. A change in probability around the 0.5 threshold, changes in surface conditions, mixed pixels, or classification variation can also affect whether a pixel enters or leaves a binary mask.
+
+The population measures also need to be read at their appropriate scale. The estimated increase of 124,192.84 people is the arithmetic difference between the two WorldPop district sums. It is not an observed count of newly arrived residents. Similarly, the district average of 641.09 people per km$^2$ is a district-wide ratio and does not describe the density of every neighbourhood. The $P_{75}$ value of 1,951.74 people per km$^2$ is a percentile threshold of the gridded density surface; it is intended to distinguish relatively dense locations within this study area rather than define an externally accepted standard.
+
+\subsection{Spatial Pattern and Potential Planning Questions}
+The map outputs show that the built-up and population patterns are spatially uneven across the district. The built-up expansion layer is concentrated in identifiable settlement corridors and clusters rather than being distributed uniformly across the full district boundary. The population-density layer provides a separate view of where the gridded population estimate is relatively concentrated. Their overlap is useful because a district-wide increase can conceal local differences: two areas with similar new built-up area may have very different estimated population contexts.
+
+For planning review, the overlap layer can be treated as a first-stage screening product. A local authority or researcher could use it to select locations for field inspection and then ask whether the mapped change corresponds to residential development, commercial activity, roads, institutional land, or construction in progress. In places where residential growth is confirmed, the next questions concern access to schools and healthcare, road connectivity, water supply, electricity, drainage, and waste collection. Those questions cannot be answered from the overlap statistic alone; they require facility inventories, network data, service-capacity information, and local verification.
+
+The 55.63\\% of newly mapped area outside the selected high-density zone should not automatically be considered unimportant. It may include lower-density settlement expansion, dispersed development, or non-residential built surfaces. Equally, areas inside the high-density zone are not necessarily underserved. The analysis identifies spatial coincidence, not service inadequacy. This distinction is important when communicating the results to planners and when deciding where further evidence should be collected.
+
+
+\section{Map Outputs}
+Figs.~\ref{fig:urban} and~\ref{fig:combined} show screenshots of the completed Google Earth Engine outputs. They document the spatial patterns visible in the project and are visual evidence, not independent validation data.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.47\textwidth,height=1.55in,keepaspectratio]{figures/urban_expansion.jpg}
+\hfill
+\includegraphics[width=0.47\textwidth,height=1.55in,keepaspectratio]{figures/population_density.jpg}
+\caption{(a) Newly mapped urban expansion for 2016--2025. (b) WorldPop-based population-density surface for 2025. Both are displayed within the Dehradun district boundary.}
+\label{fig:urban}
+\end{figure*}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/combined_analysis.jpg}
+\caption{Combined Sentinel-BPA analysis layer displayed in Google Earth Engine with the Dehradun district boundary.}
+\label{fig:combined}
+\end{figure}
+
+\section{Operational Use of the Sentinel-BPA Outputs}
+The workflow produces several complementary outputs rather than one composite measure. The district boundary defines the reporting extent; the Sentinel-2 indices provide spectral context; the Dynamic World masks describe the selected built-up probability condition for each comparison year; and the WorldPop surface provides a separate estimate of population distribution. The overlap layer is calculated only after these components have been prepared. This separation makes it possible to inspect each input independently when an unexpected spatial pattern appears.
+
+For a practical review, the outputs can be examined in a staged sequence. First, the district boundary and source imagery should be checked to confirm that the intended geography is covered. Second, the 2016 and 2025 built-up masks should be viewed separately before the newly mapped transition is interpreted. Third, the population-density surface should be examined independently, including the location of the selected $P_{75}$ threshold. Finally, the overlap layer should be reviewed alongside both source layers. This sequence reduces the risk of attributing a pattern to population when it is primarily caused by a land-cover classification, or vice versa.
+
+The numerical summaries and the map views serve different purposes. Area and population totals support district-level comparison, while the maps reveal spatial clustering and help identify locations for closer examination. A map screenshot alone does not establish the accuracy of a classification, and a district total alone cannot show the distribution of change. The combination is therefore most useful as an exploratory decision-support workflow in which the maps guide the selection of locations for validation and the numerical indicators provide a consistent summary of the selected datasets.
+
+A repeat analysis should preserve a record of the collection identifiers, date filters, thresholds, reduction scales, and boundary version. It should also retain the console values and the exact exported map layers associated with each run. If a later run changes a dataset version or parameter, the resulting measurements should be labelled as a new analysis rather than silently substituted for the values reported here. Such run documentation is particularly important when the outputs are compared over time or shared with planning teams.
+
+The current project does not calculate a service-demand index, predict future population, or estimate the number of residents in newly mapped buildings. Those would require additional assumptions and inputs. For example, translating population estimates into water or electricity demand would require locally appropriate per-capita consumption rates and information about existing service capacity. Estimating accessibility would require facility locations, road-network data, and a defined travel mode or catchment rule. Keeping these tasks outside the present analysis avoids presenting unsupported demand or access estimates as measured results.
+
+\section{Discussion}
+The principal combined result is that 34.37 km$^2$ of the 77.47 km$^2$ newly mapped built-up area lies within the $P_{75}$-or-higher population-density zone. This is 44.37\% of the new area. The result moves beyond a district-wide total and locates where settlement change and population concentration overlap.
+
+The overlap does not measure the number of people living in new buildings, the number of households, or the adequacy of public services. A high-density grid cell may contain mixed land uses, and a newly built-up pixel may represent a road, commercial structure, construction site, or other non-residential surface. The analysis indicates spatial association, not proof of causation.
+
+The overlap layer can be used as a screening map to identify locations for closer review. Areas where new built-up pixels and high estimated density coincide may warrant follow-up checks of water supply, electricity distribution, road access, healthcare, schools, and waste services. Planning decisions also require facility locations, service capacity, accessibility, local land-use records, and community-level evidence.
+
+\section{Limitations and Validation}
+Dynamic World provides class probabilities derived from Sentinel-2 imagery. The 0.5 threshold is a project setting, not a locally calibrated accuracy guarantee. Annual means can reduce single-scene noise, but results may still be affected by seasonal variation, cloud masking, mixed pixels, terrain, and source imagery. No independent confusion matrix, precision, recall, or F1-score was calculated for Dehradun.
+
+WorldPop values are modelled estimates at approximately 100 m grid spacing, not official census counts. Comparisons with official census or local administrative totals are needed before treating the estimates as validated demographic change.
+
+The Sentinel-2 bands used in NDVI and NDBI have different native spatial resolutions. NDBI combines B11 at 20 m with B8 at 10 m, so resampling and effective output scale can influence the index. The Sentinel-2 composite used 2024 imagery, whereas the built-up comparison used annual Dynamic World outputs for 2016 and 2025; these are distinct parts of the workflow.
+
+Further validation should compare built-up change against high-resolution imagery, building footprints, or local land records; compare population totals with compatible census or administrative data; inspect representative urban, peri-urban, rural, and hilly locations; and test alternative thresholds. Public-service locations and capacity data are required before making service-access conclusions.
+
+A practical validation exercise should be organised by landscape type rather than relying only on a district-wide random sample. Urban cores, peri-urban growth edges, rural settlements, and hilly areas can present different spectral and terrain conditions. Reference samples should be interpreted independently of the mapped class wherever possible, and the sampling date should be close to the image period being evaluated. The validation record should identify the reference source, interpretation date, class definition, and any ambiguous cases.
+
+Table~\ref{tab:validation} summarises checks that would strengthen a subsequent version of Sentinel-BPA. These are proposed validation activities; they were not completed as part of the present run.
+
+\begin{table}[!t]
+\caption{Proposed Validation and Follow-Up Checks}
+\label{tab:validation}
+\centering
+\footnotesize
+\begin{tabular}{p{0.31\columnwidth}p{0.60\columnwidth}}
+\toprule
+\textbf{Output}&\textbf{Suggested independent check}\\
+\midrule
+Built-up mask&Compare stratified samples with recent high-resolution imagery or building footprints\\
+Area change&Review representative gain and loss locations; test probability thresholds around 0.5\\
+Population totals&Compare with temporally and spatially compatible census or administrative totals\\
+Density surface&Inspect urban, peri-urban, rural, and hilly grid cells for plausible spatial allocation\\
+High-density overlap&Verify whether overlapping pixels represent residential or other built land uses\\
+Service implications&Add facility locations, capacity, catchments, and road-network accessibility\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+A Sentinel-2 true-colour tile-rendering error occurred because Earth Engine exceeded its memory capacity. This affected visual rendering for that layer; it does not, by itself, invalidate the separate Console statistics that completed. Large-area exports may need tiling or a coarser scale.
+
+The workflow is reproducible in structure, but the numerical outputs should not be assumed to transfer unchanged to another district. District boundaries, terrain, settlement form, image availability, and population-grid characteristics differ between places. A threshold that is useful for screening in Dehradun may require recalibration elsewhere. Even within Dehradun, the mix of valley settlements and hilly terrain means that local performance may vary. For these reasons, a future application should retain the processing sequence but repeat local checks and document any parameter changes.
+
+There are also scale and temporal alignment considerations. The Sentinel-2 median composite represents observations collected during 2024, Dynamic World annual means represent 2016 and 2025, and WorldPop provides gridded estimates for those two population years. The three components are complementary, but they do not constitute a perfectly synchronous observation of land cover and population at one instant. The results are best interpreted as a multi-source comparison over the stated periods. The use of a 100 m population grid alongside 10 m land-cover probabilities also means that the overlap is an areal relationship between datasets with different spatial supports. It should not be interpreted as a household-level relationship.
+
+
+\section{Future Work}
+Future work can include independent accuracy assessment of the Dynamic World built-up mask, comparison of WorldPop estimates with official demographic data, and the addition of Sentinel-1 radar observations as a complementary source. The analysis can be extended to ward-level reporting and multiple seasonal windows. Integrating locations and capacities of schools, clinics, roads, water facilities, and electricity infrastructure would allow a more direct assessment of accessibility and potential service gaps. Resource-demand indicators should only be developed after locally appropriate per-person standards have been selected and documented.
+
+\section{Conclusion}
+This paper presented an implemented Sentinel-BPA workflow for Dehradun district using Google Earth Engine. It combined Sentinel-2 surface reflectance and spectral indices, Dynamic World built-up probabilities, and WorldPop population grids. The mapped built-up area increased from 242.63 km$^2$ to 311.34 km$^2$, a net increase of 68.71 km$^2$ or 28.32\%. The newly mapped built-up area was 77.47 km$^2$. The WorldPop-based population estimate increased from approximately 1.84 million to 1.97 million, or 6.74\%. Of the newly mapped built-up area, 34.37 km$^2$ (44.37\%) overlapped the $P_{75}$-or-higher population-density zone.
+
+These outputs are model-based screening results, not a substitute for census counts, field surveys, or infrastructure-capacity assessments. The next stage should validate the built-up map and population estimates, test threshold sensitivity, and integrate local public-service data.
+
+\balance
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+\end{document}

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentinel-BPA | Dehradun Geospatial Analysis</title>
+<style>
+:root{--bg:#071321;--panel:#101f31;--panel2:#14283d;--line:#263d56;--text:#e8f1fb;--muted:#9bb0c7;--teal:#35d0c0;--blue:#65a9ff;--amber:#ffc766;--red:#ff777e;--purple:#b69aff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#071321,#0a1b2c 55%,#0b2030);color:var(--text);font:15px/1.5 Inter,Segoe UI,Arial,sans-serif}
+header{padding:25px clamp(18px,4vw,56px);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;background:#091827}
+.brand{display:flex;align-items:center;gap:14px}.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#1e7c91,#2dd4bf);display:grid;place-items:center;font-size:23px;color:#04131c;font-weight:800}
+h1{font-size:23px;margin:0;letter-spacing:.2px}.subtitle{color:var(--muted);margin-top:3px;font-size:13px}
+.status{border:1px solid #24695f;background:#0d302e;color:#7ce5d7;border-radius:999px;padding:8px 13px;font-size:11px;font-weight:700;letter-spacing:.7px}
+main{max-width:1500px;margin:auto;padding:26px clamp(16px,4vw,56px) 50px}
+.intro{display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap;margin-bottom:22px}.eyebrow{color:var(--teal);text-transform:uppercase;font-size:11px;font-weight:700;letter-spacing:1.5px}.intro h2{font-size:27px;margin:5px 0}.intro p{margin:0;color:var(--muted);max-width:760px}
+.filters{display:flex;gap:10px;flex-wrap:wrap}.filter{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--muted);font-size:12px}.filter select{display:block;background:transparent;border:0;color:var(--text);font-size:14px;outline:none;margin-top:3px;min-width:130px}.filter option{background:#102034}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:17px;padding:18px;min-width:0;box-shadow:0 10px 28px #0002}.kpi-label{color:var(--muted);font-size:12px}.kpi{font-size:clamp(23px,2.5vw,31px);font-weight:750;letter-spacing:-.7px;margin:8px 0 4px}.kpi-note{font-size:11px;color:var(--teal)}
+.section-title{font-size:16px;margin:0 0 4px}.section-sub{color:var(--muted);font-size:12px;margin:0 0 15px}
+.two{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;margin-top:14px}.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+.chart-wrap{height:250px;position:relative}canvas{width:100%;height:100%;display:block}
+.legend{display:flex;gap:15px;flex-wrap:wrap;color:var(--muted);font-size:11px;margin-top:8px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.metric-list{display:grid;gap:13px}.metric-row{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid #233950;padding-bottom:10px}.metric-row:last-child{border:0;padding:0}.metric-row span{color:var(--muted);font-size:12px}.metric-row strong{font-size:14px;text-align:right}
+.callout{border-left:3px solid var(--amber);padding:10px 13px;background:#332b1d66;border-radius:0 9px 9px 0;color:#f5dfb7;font-size:12px;margin-top:13px}
+.pill{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:99px;color:var(--muted);font-size:10px;margin:0 5px 5px 0}
+.bar-row{margin:14px 0}.bar-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px}.bar-head span{color:var(--muted)}.track{height:9px;background:#20364d;border-radius:99px;overflow:hidden}.fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#208c9b,var(--teal))}
+.density-scale{height:18px;border-radius:99px;background:linear-gradient(90deg,#2a8caa,#35d0c0,#ffc766,#ff777e);margin:16px 0 7px}.scale-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}
+footer{margin-top:16px;color:var(--muted);font-size:11px;text-align:center;padding:20px}
+.small{font-size:11px;color:var(--muted)}.data-tag{font-size:10px;color:#85d9ce;border:1px solid #285d59;border-radius:6px;padding:3px 6px}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}.two,.three{grid-template-columns:1fr}}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.intro h2{font-size:22px}.kpi{font-size:28px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">⌁</div><div><h1>Sentinel-BPA</h1><div class="subtitle">Based Population Analysis · Dehradun, Uttarakhand, India</div></div></div>
+  <div class="status">EARTH ENGINE RESULTS · RESEARCH SUMMARY</div>
+</header>
+<main>
+  <div class="intro">
+    <div><div class="eyebrow">Geospatial research dashboard</div><h2>Urban growth & population distribution</h2><p>A district-level summary of built-up expansion, gridded population estimates and the spatial overlap between newly developed urban area and high-density zones.</p></div>
+    <div class="filters">
+      <label class="filter">COMPARISON PERIOD<select id="period"><option value="2016-2025">2016 → 2025</option></select></label>
+      <label class="filter">POPULATION VIEW<select id="popView"><option value="both">Compare both years</option><option value="2016">2016 only</option><option value="2025">2025 only</option></select></label>
+    </div>
+  </div>
+
+  <section class="grid">
+    <div class="card"><div class="kpi-label">District area</div><div class="kpi">3,066.94 <span style="font-size:15px">km²</span></div><div class="kpi-note">Study-area geometry</div></div>
+    <div class="card"><div class="kpi-label">Built-up area · 2025</div><div class="kpi">311.34 <span style="font-size:15px">km²</span></div><div class="kpi-note">Dynamic World built-class estimate</div></div>
+    <div class="card"><div class="kpi-label">Built-up growth · 2016–2025</div><div class="kpi">+28.32%</div><div class="kpi-note">Net increase: 68.71 km²</div></div>
+    <div class="card"><div class="kpi-label">Estimated population · 2025</div><div class="kpi">19.66 lakh</div><div class="kpi-note">WorldPop gridded estimate</div></div>
+  </section>
+
+  <section class="two">
+    <div class="card">
+      <h3 class="section-title">Population comparison</h3><p class="section-sub">WorldPop gridded population estimates · persons</p>
+      <div class="chart-wrap"><canvas id="populationChart"></canvas></div>
+      <div class="legend"><span><i class="dot" style="background:var(--blue)"></i>2016</span><span><i class="dot" style="background:var(--teal)"></i>2025</span></div>
+      <div class="callout">Estimated increase: 1,24,193 people (approximately 6.74%). These are gridded model estimates, not a direct census count.</div>
+    </div>
+    <div class="card">
+      <h3 class="section-title">Built-up area change</h3><p class="section-sub">Area classified as built-up · km²</p>
+      <div class="chart-wrap"><canvas id="builtChart"></canvas></div>
+      <div class="metric-list">
+        <div class="metric-row"><span>2016 built-up area</span><strong>242.63 km²</strong></div>
+        <div class="metric-row"><span>2025 built-up area</span><strong>311.34 km²</strong></div>
+        <div class="metric-row"><span>Net increase</span><strong>68.71 km²</strong></div>
+        <div class="metric-row"><span>Relative growth</span><strong>28.32%</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="three">
+    <div class="card">
+      <h3 class="section-title">Urban expansion footprint</h3><p class="section-sub">Newly developed area identified by the change-detection procedure</p>
+      <div class="kpi">77.47 km²</div>
+      <div class="bar-row"><div class="bar-head"><span>Overlapping high-density zones</span><strong>34.37 km²</strong></div><div class="track"><div class="fill" style="width:44.368%"></div></div></div>
+      <div class="bar-row"><div class="bar-head"><span>Other newly developed area</span><strong>43.10 km²</strong></div><div class="track"><div class="fill" style="width:55.632%;background:linear-gradient(90deg,#466eaa,var(--blue))"></div></div></div>
+      <div class="callout">44.37% of the mapped new urban area overlaps the high-density zone mask.</div>
+    </div>
+    <div class="card">
+      <h3 class="section-title">Population density profile</h3><p class="section-sub">People per km² · district-level gridded estimate</p>
+      <div class="kpi">641.09</div><div class="small">Average population density</div>
+      <div class="density-scale"></div><div class="scale-labels"><span>Lower density</span><span>Higher density</span></div>
+      <div class="metric-list" style="margin-top:17px">
+        <div class="metric-row"><span>25th percentile</span><strong>224.63</strong></div>
+        <div class="metric-row"><span>Median (50th)</span><strong>543.08</strong></div>
+        <div class="metric-row"><span>75th percentile</span><strong>1,951.74</strong></div>
+        <div class="metric-row"><span>90th percentile</span><strong>5,215.53</strong></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 class="section-title">Resource-demand scenario</h3><p class="section-sub">Illustrative calculation using the 2025 population estimate</p>
+      <div class="kpi">265.44 ML/day</div>
+      <div class="small">Indicative daily water requirement</div>
+      <div class="metric-list" style="margin-top:18px">
+        <div class="metric-row"><span>Population input</span><strong>1,966,195</strong></div>
+        <div class="metric-row"><span>Consumption assumption</span><strong>135 L/person/day</strong></div>
+        <div class="metric-row"><span>Calculation</span><strong>Population × 135 L</strong></div>
+      </div>
+      <div class="callout">Scenario estimate only. The 135 L/person/day assumption is not a measured water-use observation.</div>
+    </div>
+  </section>
+
+  <section class="two">
+    <div class="card">
+      <h3 class="section-title">What the indicators tell us</h3><p class="section-sub">Interpretation of the reported analysis outputs</p>
+      <div class="metric-list">
+        <div class="metric-row"><span>Urban development</span><strong>Built-up area increased between 2016 and 2025.</strong></div>
+        <div class="metric-row"><span>Population pattern</span><strong>Gridded population estimates increased over the same period.</strong></div>
+        <div class="metric-row"><span>Spatial pressure</span><strong>A portion of newly developed area intersects the high-density mask.</strong></div>
+        <div class="metric-row"><span>Planning relevance</span><strong>These indicators can help prioritise locations for further infrastructure assessment.</strong></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 class="section-title">Data sources & methodology</h3><p class="section-sub">Source labels reflect the Earth Engine workflow and console outputs</p>
+      <div style="margin-bottom:12px"><span class="pill">Google Earth Engine</span><span class="pill">Dynamic World V1</span><span class="pill">WorldPop Global 2</span><span class="pill">FAO GAUL</span></div>
+      <div class="metric-list">
+        <div class="metric-row"><span>Built-up mapping</span><strong>Dynamic World built-class probability, thresholded at 0.5</strong></div>
+        <div class="metric-row"><span>Population</span><strong>WorldPop 100 m gridded population estimates</strong></div>
+        <div class="metric-row"><span>Boundary</span><strong>Dehradun district geometry</strong></div>
+        <div class="metric-row"><span>Change detection</span><strong>Comparison of 2016 and 2025 built-up masks</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:14px">
+    <h3 class="section-title">Research notes & limitations</h3>
+    <p class="section-sub">Read before interpreting or presenting the figures</p>
+    <ul class="small" style="padding-left:18px;line-height:1.8">
+      <li>Population figures are gridded estimates from WorldPop and should not be described as official census counts.</li>
+      <li>Built-up area values are derived from the Dynamic World built-class workflow shown in the Earth Engine script.</li>
+      <li>The 68.71 km² net built-up increase and the 77.47 km² newly developed footprint are outputs from different analysis procedures; they are intentionally reported as separate indicators.</li>
+      <li>The 44.37% overlap is the reported proportion of the newly developed area intersecting the high-density zone mask.</li>
+      <li>Water demand is a scenario calculation based on 135 litres per person per day, not measured consumption.</li>
+      <li>Results depend on dataset resolution, classification threshold, boundary geometry and processing choices. Validate methods and dates before formal publication.</li>
+    </ul>
+  </section>
+  <footer>Sentinel-BPA · Based Population Analysis · Dehradun, Uttarakhand · Research dashboard</footer>
+</main>
+<script>
+const P={2016:1842001.7678473478,2025:1966194.6086758277};
+function setupCanvas(id){const c=document.getElementById(id),dpr=window.devicePixelRatio||1,r=c.getBoundingClientRect();c.width=r.width*dpr;c.height=r.height*dpr;const x=c.getContext('2d');x.scale(dpr,dpr);return {c,x,w:r.width,h:r.height}}
+function drawBars(id,items,max){const {x,w,h}=setupCanvas(id);x.clearRect(0,0,w,h);const pad={l:48,r:15,t:18,b:38},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+x.font='11px Segoe UI';x.strokeStyle='#29435d';x.fillStyle='#9bb0c7';x.lineWidth=1;
+for(let i=0;i<=4;i++){let y=pad.t+ch*i/4;x.beginPath();x.moveTo(pad.l,y);x.lineTo(w-pad.r,y);x.stroke();x.fillText(Math.round(max*(1-i/4)).toLocaleString('en-IN'),2,y+4)}
+const bw=Math.min(76,cw/(items.length*2.3));items.forEach((it,i)=>{let cx=pad.l+cw*(i+.5)/items.length,bh=ch*it.v/max,y=pad.t+ch-bh;x.fillStyle=it.color;x.beginPath();x.roundRect(cx-bw/2,y,bw,bh,7);x.fill();x.fillStyle='#e8f1fb';x.textAlign='center';x.fillText(it.label,cx,h-12);x.fillStyle='#dce8f5';x.font='bold 11px Segoe UI';x.fillText(it.display,cx,y-8);x.font='11px Segoe UI';x.textAlign='left'})}
+function render(){const mode=document.getElementById('popView').value;let arr=mode==='2016'?[{label:'2016',v:P[2016],color:'#65a9ff',display:'18.42 lakh'}]:mode==='2025'?[{label:'2025',v:P[2025],color:'#35d0c0',display:'19.66 lakh'}]:[{label:'2016',v:P[2016],color:'#65a9ff',display:'18.42 lakh'},{label:'2025',v:P[2025],color:'#35d0c0',display:'19.66 lakh'}];drawBars('populationChart',arr,2200000);drawBars('builtChart',[{label:'2016',v:242.62708961116113,color:'#65a9ff',display:'242.63'},{label:'2025',v:311.33789635340037,color:'#35d0c0',display:'311.34'}],350)}
+document.getElementById('popView').addEventListener('change',render);window.addEventListener('resize',render);render();
+</script>
+</body>
+</html>
